@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedProgress V2</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#718096;--line:#e6eaf0;--a:#4263eb;--ok:#159a68;--danger:#d9485f}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+.app{min-height:100vh;display:flex}.side{width:230px;background:#111827;color:#fff;padding:22px 14px;position:fixed;inset:0 auto 0 0}.brand{font-weight:800;font-size:21px;padding:8px 10px 24px}.brand b{color:#8da2ff}.nav button{display:block;width:100%;border:0;background:none;color:#b8c0cf;text-align:left;padding:12px;border-radius:9px;margin:4px 0;cursor:pointer}.nav button.active,.nav button:hover{background:#27314a;color:white}.main{margin-left:230px;padding:28px;max-width:1300px;width:100%}.top{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:20px}.top h1{margin:0}.muted{color:var(--muted);font-size:13px}.view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 3px 12px #1720330a}.value{font-size:28px;font-weight:800;margin-top:7px}.ok{color:var(--ok)}.bar{height:8px;background:#edf0f5;border-radius:10px;overflow:hidden;margin:10px 0}.fill{height:100%;background:var(--a)}.domain{cursor:pointer}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--a);border-color:var(--a);color:#fff}.btn.danger{color:var(--danger)}.btn.small{padding:6px 9px;font-size:12px}.controls{display:flex;gap:8px;flex-wrap:wrap}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:11px 8px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}.table th{color:var(--muted)}.badge{font-size:11px;padding:4px 7px;border-radius:6px;background:#e9f7f0;color:#147d58}.badge.gray{background:#f0f2f5;color:#6d7685}.form{display:grid;gap:9px}.form input,.form select{padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}.chart{height:210px;display:flex;align-items:flex-end;gap:8px;padding:15px}.day{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.bars{height:165px;display:flex;align-items:flex-end;gap:4px}.barcol{width:13px;max-width:25px;background:var(--a);border-radius:5px 5px 1px 1px}.barcol.q{background:#aab7f8}.day small{color:var(--muted)}.empty{padding:25px;text-align:center;color:var(--muted)}
+@media(max-width:800px){.side{width:64px}.brand{font-size:0}.brand b{font-size:18px}.nav button{font-size:0;text-align:center}.nav button:first-letter{font-size:18px}.main{margin-left:64px;padding:18px}.grid{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#111827"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"></head>
+<body>
+<div class="app">
+<aside class="side"><div class="brand">Med<b>Progress</b></div><div class="nav">
+<button class="active" data-view="dashboard">📊 Dashboard</button>
+<button data-view="domains">📚 Domaines</button>
+<button data-view="courses">📖 Cours</button>
+<button data-view="qcm">❓ QCM</button>
+<button data-view="activity">📅 Activité</button>
+</div></aside>
+<main class="main">
+
+<section id="dashboard" class="view active">
+<div class="top"><div><h1>Dashboard</h1><div class="muted">Tes statistiques sont calculées depuis les données enregistrées sur cet appareil.</div></div><button class="btn" id="seed">↻ Réinitialiser les données démo</button></div>
+<div class="grid" id="stats"></div>
+<div class="grid2" style="margin-top:16px"><div class="card"><div class="row"><h3>Progression par domaine</h3><button class="btn small" data-go="domains">Voir tout</button></div><div id="domainDash"></div></div><div class="card"><h3>Activité — 7 jours</h3><div class="chart" id="chart"></div></div></div>
+</section>
+
+<section id="domains" class="view"><div class="top"><div><h1>Domaines médicaux</h1><div class="muted">Ajoute et suis chaque spécialité.</div></div><button class="btn primary" id="addDomain">+ Domaine</button></div><div id="domainList" class="grid2"></div></section>
+
+<section id="courses" class="view"><div class="top"><div><h1>Cours</h1><div class="muted">Marque les cours étudiés; la progression se met à jour automatiquement.</div></div><button class="btn primary" id="addCourse">+ Cours</button></div><div class="card"><table class="table"><thead><tr><th>Cours</th><th>Domaine</th><th>Statut</th><th>Action</th></tr></thead><tbody id="courseTable"></tbody></table></div></section>
+
+<section id="qcm" class="view"><div class="top"><div><h1>QCM</h1><div class="muted">Enregistre les QCM faits et les résultats.</div></div><button class="btn primary" id="addQcm">+ QCM</button></div><div class="card"><table class="table"><thead><tr><th>QCM</th><th>Domaine</th><th>Résultat</th><th>Statut</th><th>Action</th></tr></thead><tbody id="qcmTable"></tbody></table></div></section>
+
+<section id="activity" class="view"><div class="top"><div><h1>Activité quotidienne</h1><div class="muted">Chaque action enregistrée alimente automatiquement les statistiques.</div></div><button class="btn" id="export">Exporter les données JSON</button></div><div class="grid" id="todayStats"></div><div class="card" style="margin-top:16px"><h3>Historique</h3><table class="table"><thead><tr><th>Date</th><th>Cours</th><th>QCM</th><th>Temps (min)</th></tr></thead><tbody id="activityTable"></tbody></table></div></section>
+
+</main></div>
+
+<script>
+const DB='MedProgressV2', VER=1;
+let db;
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+function req(r){return new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function tx(store,mode='readonly'){return db.transaction(store,mode).objectStore(store)}
+async function all(s){return req(tx(s).getAll())}
+async function put(s,o){return req(tx(s,'readwrite').put(o))}
+async function del(s,id){return req(tx(s,'readwrite').delete(id))}
+function uid(){return Date.now()+Math.random().toString(16).slice(2)}
+function today(){return new Date().toISOString().slice(0,10)}
+function days(n){let a=[];for(let i=n-1;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i);a.push(d.toISOString().slice(0,10))}return a}
+function esc(x){return String(x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+function openDB(){return new Promise((resolve,reject)=>{let r=indexedDB.open(DB,VER);r.onupgradeneeded=e=>{let d=e.target.result;
+['domains','courses','qcms','activity'].forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'})});
+};r.onsuccess=()=>{db=r.result;resolve()};r.onerror=()=>reject(r.error)})}
+
+async function seed(){
+let d=await all('domains'); if(d.length) return;
+for(const x of [{id:'cardio',name:'Cardiologie',icon:'❤️'},{id:'pedia',name:'Pédiatrie',icon:'👶'},{id:'neuro',name:'Neurologie',icon:'🧠'},{id:'pneumo',name:'Pneumologie',icon:'🫁'}]) await put('domains',x);
+const courses=[['Insuffisance cardiaque','cardio',1],['ECG','cardio',1],['HTA','cardio',0],['Asthme de l’enfant','pedia',1],['Fièvre chez l’enfant','pedia',0],['AVC ischémique','neuro',0],['Épilepsie','neuro',1],['BPCO','pneumo',1],['Pneumonie','pneumo',1]];
+for(const [name,domain,done] of courses) await put('courses',{id:uid(),name,domain,done:!!done,completedAt:done?today():null});
+for(let i=0;i<20;i++) await put('qcms',{id:uid(),name:'QCM '+(i+1),domain:['cardio','pedia','neuro','pneumo'][i%4],done:i<12,score:i<12?70+(i%4)*5:null,doneAt:i<12?days(7)[i%7]:null});
+for(const date of days(7)){let i=Math.floor(Math.random()*4)+1;await put('activity',{id:date,date,courses:i,qcms:i*10,minutes:i*25})}
+}
+
+async function reset(){indexedDB.deleteDatabase(DB);location.reload()}
+async function domains(){return all('domains')}
+async function calc(){let ds=await all('domains'),cs=await all('courses'),qs=await all('qcms');let total=cs.length+qs.length,done=cs.filter(x=>x.done).length+qs.filter(x=>x.done).length;return {ds,cs,qs,total,done,pct:total?Math.round(done/total*100):0}}
+function domainStats(d,cs,qs){let c=cs.filter(x=>x.domain===d.id),q=qs.filter(x=>x.domain===d.id),done=c.filter(x=>x.done).length+q.filter(x=>x.done).length,total=c.length+q.length;return {c,q,done,total,pct:total?Math.round(done/total*100):0}}
+async function render(){
+let {ds,cs,qs,pct}=await calc();
+let qdone=qs.filter(x=>x.done), avg=qdone.length?Math.round(qdone.reduce((a,b)=>a+(b.score||0),0)/qdone.length):0;
+$('#stats').innerHTML=`<div class="card"><div class="muted">Progression globale</div><div class="value">${pct}%</div><div class="ok">cours + QCM</div></div><div class="card"><div class="muted">Cours étudiés</div><div class="value">${cs.filter(x=>x.done).length}/${cs.length}</div><div class="muted">${cs.filter(x=>!x.done).length} restants</div></div><div class="card"><div class="muted">QCM étudiés</div><div class="value">${qdone.length}/${qs.length}</div><div class="muted">${qs.filter(x=>!x.done).length} restants</div></div><div class="card"><div class="muted">Réussite moyenne</div><div class="value">${avg}%</div><div class="ok">${qdone.length} résultats enregistrés</div></div>`;
+$('#domainDash').innerHTML=ds.map(d=>{let s=domainStats(d,cs,qs);return `<div style="margin:14px 0"><div class="row"><b>${d.icon} ${esc(d.name)}</b><b>${s.pct}%</b></div><div class="bar"><div class="fill" style="width:${s.pct}%"></div></div><div class="muted">${s.c.filter(x=>x.done).length}/${s.c.length} cours · ${s.q.filter(x=>x.done).length}/${s.q.length} QCM</div></div>`}).join('');
+$('#domainList').innerHTML=ds.map(d=>{let s=domainStats(d,cs,qs);return `<div class="card domain"><div class="row"><h3>${d.icon} ${esc(d.name)}</h3><b>${s.pct}%</b></div><div class="bar"><div class="fill" style="width:${s.pct}%"></div></div><p class="muted">${s.c.filter(x=>x.done).length}/${s.c.length} cours étudiés · ${s.q.filter(x=>x.done).length}/${s.q.length} QCM étudiés</p><button class="btn danger small" onclick="removeDomain('${d.id}')">Supprimer</button></div>`}).join('');
+let names=Object.fromEntries(ds.map(d=>[d.id,d.name]));
+$('#courseTable').innerHTML=cs.length?cs.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(names[c.domain]||'—')}</td><td>${c.done?'<span class="badge">Terminé</span>':'<span class="badge gray">Restant</span>'}</td><td><button class="btn small" onclick="toggleCourse('${c.id}')">${c.done?'↩ Refaire':'✓ Terminer'}</button> <button class="btn danger small" onclick="removeCourse('${c.id}')">×</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">Aucun cours.</td></tr>`;
+$('#qcmTable').innerHTML=qs.length?qs.map(q=>`<tr><td>${esc(q.name)}</td><td>${esc(names[q.domain]||'—')}</td><td>${q.done?(q.score??0)+'%':'—'}</td><td>${q.done?'<span class="badge">Étudié</span>':'<span class="badge gray">Restant</span>'}</td><td><button class="btn small" onclick="recordQcm('${q.id}')">${q.done?'✎ Résultat':'✓ Faire le QCM'}</button> <button class="btn danger small" onclick="removeQcm('${q.id}')">×</button></td></tr>`).join(''):`<tr><td colspan="5" class="empty">Aucun QCM.</td></tr>`;
+let acts=await all('activity');acts.sort((a,b)=>b.date.localeCompare(a.date));
+let t=acts.find(x=>x.date===today())||{courses:0,qcms:0,minutes:0};$('#todayStats').innerHTML=`<div class="card"><div class="muted">Aujourd'hui</div><div class="value">${t.minutes} min</div></div><div class="card"><div class="muted">Cours aujourd'hui</div><div class="value">${t.courses}</div></div><div class="card"><div class="muted">QCM aujourd'hui</div><div class="value">${t.qcms}</div></div><div class="card"><div class="muted">Jours actifs</div><div class="value">${acts.filter(x=>x.courses+x.qcms>0).length}</div></div>`;
+$('#activityTable').innerHTML=acts.slice(0,30).map(a=>`<tr><td>${a.date}</td><td>${a.courses}</td><td>${a.qcms}</td><td>${a.minutes}</td></tr>`).join('');
+let last=days(7),max=Math.max(1,...last.map(x=>{let a=acts.find(y=>y.date===x);return a?(a.courses+a.qcms/10):0}));
+$('#chart').innerHTML=last.map(x=>{let a=acts.find(y=>y.date===x)||{courses:0,qcms:0},h=Math.round(a.courses/max*100),qh=Math.round((a.qcms/10)/max*100);return `<div class="day"><div class="bars"><div class="barcol" style="height:${Math.max(3,h)}%"></div><div class="barcol q" style="height:${Math.max(3,qh)}%"></div></div><small>${x.slice(5)}</small></div>`}).join('');
+}
+async function addActivity(kind){let a=(await all('activity')).find(x=>x.date===today())||{id:today(),date:today(),courses:0,qcms:0,minutes:0};a[kind]++;await put('activity',a)}
+async function toggleCourse(id){let c=(await all('courses')).find(x=>x.id==id);c.done=!c.done;c.completedAt=c.done?today():null;await put('courses',c);if(c.done){await addActivity('courses');c._done=1}await render()}
+async function recordQcm(id){let q=(await all('qcms')).find(x=>x.id==id);let score=prompt('Score du QCM (0-100) :',q.score??80);if(score===null)return;score=Math.max(0,Math.min(100,Number(score)||0));if(!q.done){q.done=true;await addActivity('qcms')}q.score=score;q.doneAt=today();await put('qcms',q);await render()}
+async function removeCourse(id){if(confirm('Supprimer ce cours ?')){await del('courses',id);await render()}}
+async function removeQcm(id){if(confirm('Supprimer ce QCM ?')){await del('qcms',id);await render()}}
+async function removeDomain(id){let cs=await all('courses'),qs=await all('qcms');if(cs.some(x=>x.domain===id)||qs.some(x=>x.domain===id)){alert('Ce domaine contient des cours/QCM. Supprime-les d’abord.');return}if(confirm('Supprimer ce domaine ?')){await del('domains',id);await render()}}
+async function addDomain(){let name=prompt('Nom du domaine :');if(!name)return;let icon=prompt('Emoji (optionnel) :','📚');await put('domains',{id:uid(),name,icon:icon||'📚'});await render()}
+async function addCourse(){let ds=await domains();if(!ds.length)return alert('Ajoute d’abord un domaine.');let name=prompt('Nom du cours :');if(!name)return;let opts=ds.map((d,i)=>`${i+1}. ${d.name}`).join('\n');let n=Number(prompt(opts+'\n\nNuméro du domaine :','1'))-1;if(!ds[n])return;await put('courses',{id:uid(),name,domain:ds[n].id,done:false,completedAt:null});await render()}
+async function addQcm(){let ds=await domains();if(!ds.length)return alert('Ajoute d’abord un domaine.');let name=prompt('Nom du QCM :');if(!name)return;let opts=ds.map((d,i)=>`${i+1}. ${d.name}`).join('\n');let n=Number(prompt(opts+'\n\nNuméro du domaine :','1'))-1;if(!ds[n])return;await put('qcms',{id:uid(),name,domain:ds[n].id,done:false,score:null,doneAt:null});await render()}
+function exportData(){Promise.all([all('domains'),all('courses'),all('qcms'),all('activity')]).then(([domains,courses,qcms,activity])=>{let b=new Blob([JSON.stringify({domains,courses,qcms,activity},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='medprogress-backup.json';a.click()})}
+$$('.nav button').forEach(b=>b.onclick=()=>{ $$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active');$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');});
+$$('[data-go]').forEach(b=>b.onclick=()=>{$(`[data-view="${b.dataset.go}"]`).click()});
+$('#addDomain').onclick=addDomain;$('#addCourse').onclick=addCourse;$('#addQcm').onclick=addQcm;$('#export').onclick=exportData;$('#seed').onclick=reset;
+(async()=>{await openDB();await seed();await render()})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body></html>

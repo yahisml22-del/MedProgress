@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedProgress V6</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#718096;--line:#e6eaf0;--a:#4263eb;--ok:#159a68;--danger:#d9485f;--warning:#e09f3e;--dark:#111827}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:flex}
+.side{width:230px;background:var(--dark);color:#fff;padding:22px 14px;position:fixed;inset:0 auto 0 0;z-index:10}
+.brand{font-weight:800;font-size:21px;padding:8px 10px 24px}.brand b{color:#8da2ff}
+.nav button{display:block;width:100%;border:0;background:none;color:#b8c0cf;text-align:left;padding:12px;border-radius:9px;margin:4px 0}
+.nav button.active,.nav button:hover{background:#27314a;color:#fff}
+.main{margin-left:230px;padding:28px;max-width:1400px;width:100%}.view{display:none}.view.active{display:block}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h1{margin:0}
+.muted{color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.card,.subject-card,.qcm-card,.home-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 3px 14px #1720330a}
+.value{font-size:28px;font-weight:800;margin-top:6px}.ok{color:var(--ok)}.danger{color:var(--danger)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.btn{border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:10px}
+.btn.primary{background:var(--a);border-color:var(--a);color:#fff}.btn.danger{color:var(--danger)}.btn.small{padding:7px 10px;font-size:12px}
+.empty{padding:35px;text-align:center;color:var(--muted)}.home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:25px}
+.home-card{min-height:155px;display:flex;flex-direction:column;justify-content:center;transition:.15s;cursor:pointer}.home-card:hover{transform:translateY(-2px);box-shadow:0 8px 25px #17203312}
+.home-icon{font-size:42px;margin-bottom:12px}.home-title{font-size:21px;font-weight:800}.home-desc{color:var(--muted);font-size:13px;margin-top:6px}
+.subject-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.subject-icon{font-size:34px}.progress{height:8px;background:#edf0f5;border-radius:20px;overflow:hidden;margin:12px 0}.progress-fill{height:100%;background:var(--a)}
+.course-list,.qcm-list{display:grid;gap:10px;margin-top:18px}.course-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.course-item.done{background:#f0fbf6;border-color:#c8eadb}.qcm-question{font-size:21px;font-weight:750;line-height:1.5;margin:22px 0}
+.option{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;padding:15px;margin:10px 0;border:2px solid var(--line);background:#fff;border-radius:12px;transition:.15s}
+.option:hover{border-color:var(--a)}.option.selected{border-color:var(--a);background:#f1f4ff}.option.correct{border-color:var(--ok);background:#e9f7f0;color:#126b4e}
+.option.wrong{border-color:var(--danger);background:#fff0f2;color:#a82d42}.option input{margin-top:4px;accent-color:var(--a)}
+.explanation{margin-top:18px;padding:16px;border-radius:12px;background:#f0f4ff;border:1px solid #dbe3ff;line-height:1.6}
+.result{padding:15px;border-radius:12px;margin-top:16px;font-weight:700}.result.good{background:#e9f7f0;color:#147d58}.result.partial{background:#fff8e7;color:#9a6b13}.result.bad{background:#fff0f2;color:#a82d42}
+.error-card{border-left:5px solid var(--danger);margin-bottom:14px}.hard-card{border-left:5px solid var(--warning);margin-bottom:14px}
+.form{display:grid;gap:10px}.form input,.form textarea,.form select{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:#fff}.form textarea{min-height:110px;resize:vertical}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:11px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{color:var(--muted)}
+.tag{display:inline-block;padding:4px 8px;border-radius:8px;background:#eef2ff;color:#3852c9;font-size:12px}
+@media(max-width:800px){.side{width:64px}.brand{font-size:0}.brand b{font-size:18px}.nav button{font-size:0;text-align:center}.nav button:first-letter{font-size:18px}.main{margin-left:64px;padding:18px}.grid{grid-template-columns:1fr 1fr}.grid2,.home-grid,.subject-grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.home-card{min-height:135px}.qcm-question{font-size:18px}.course-item{align-items:flex-start;flex-direction:column}}
+</style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#111827">
+</head>
+<body>
+<div class="app">
+<aside class="side"><div class="brand">Med<b>Progress</b></div><div class="nav">
+<button class="active" data-view="home">🏠 Accueil</button><button data-view="subjects">📚 Matières</button>
+<button data-view="qcm">❓ QCM</button><button data-view="errors">❌ Mes erreurs</button>
+<button data-view="hard">🧠 À retenir</button><button data-view="progress">📊 Progrès</button>
+</div></aside>
+<main class="main">
+
+<section id="home" class="view active"><div class="top"><div><h1>MedProgress</h1><div class="muted">Ton espace personnel de révision médicale.</div></div></div>
+<div class="home-grid">
+<div class="home-card" onclick="go('subjects')"><div class="home-icon">📚</div><div class="home-title">Matières</div><div class="home-desc">Entrer dans une matière pour voir ses cours</div></div>
+<div class="home-card" onclick="go('qcm')"><div class="home-icon">❓</div><div class="home-title">QCM</div><div class="home-desc">Une question peut avoir 1, 2, 3, 4 ou 5 bonnes réponses</div></div>
+<div class="home-card" onclick="go('errors')"><div class="home-icon">❌</div><div class="home-title">Mes erreurs</div><div class="home-desc">Revoir les questions auxquelles tu as mal répondu</div></div>
+<div class="home-card" onclick="go('hard')"><div class="home-icon">🧠</div><div class="home-title">Difficile à retenir</div><div class="home-desc">Conserver les notions importantes</div></div>
+<div class="home-card" onclick="go('progress')"><div class="home-icon">📊</div><div class="home-title">Mon progrès</div><div class="home-desc">Voir mes statistiques</div></div>
+</div></section>
+
+<section id="subjects" class="view"><div class="top"><div><h1>📚 Matières</h1><div class="muted">Choisis une matière pour voir ses cours.</div></div><button class="btn primary" id="addSubject">+ Matière</button></div><div id="subjectContent"></div></section>
+
+<section id="qcm" class="view"><div class="top"><div><h1>❓ QCM</h1><div class="muted">Sélectionne toutes les réponses correctes.</div></div><button class="btn primary" id="addQcm">+ QCM</button></div><div id="qcmContent"></div></section>
+
+<section id="errors" class="view"><div class="top"><div><h1>❌ Mes erreurs</h1><div class="muted">Questions où ta combinaison de réponses était incorrecte.</div></div></div><div id="errorList"></div></section>
+
+<section id="hard" class="view"><div class="top"><div><h1>🧠 Difficile à retenir</h1><div class="muted">Les informations que tu veux revoir.</div></div><button class="btn primary" id="addHard">+ Ajouter</button></div><div id="hardList"></div></section>
+
+<section id="progress" class="view"><div class="top"><div><h1>📊 Mon progrès</h1><div class="muted">Vue générale de tes révisions.</div></div><button class="btn danger" id="resetBtn">↻ Réinitialiser</button></div><div class="grid" id="stats"></div><div class="card" style="margin-top:18px"><h3>Progression par matière</h3><div id="progressSubjects"></div></div></section>
+</main></div>
+
+<script>
+const DB='MedProgressV6',VER=1;let db=null,currentSubject=null,currentQcm=null,currentQuestion=0,selectedAnswers=[],answered=false;
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const req=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const tx=(s,m='readonly')=>db.transaction(s,m).objectStore(s);
+const all=s=>req(tx(s).getAll()),put=(s,o)=>req(tx(s,'readwrite').put(o)),del=(s,id)=>req(tx(s,'readwrite').delete(id));
+const uid=()=>Date.now()+'-'+Math.random().toString(16).slice(2),today=()=>new Date().toISOString().slice(0,10);
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function go(view){currentSubject=null;if(view!=='qcm')currentQcm=null;$$('.view').forEach(v=>v.classList.remove('active'));$('#'+view)?.classList.add('active');$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));render()}
+$$('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.view));
+function openDB(){return new Promise((resolve,reject)=>{let r=indexedDB.open(DB,VER);r.onupgradeneeded=e=>{let d=e.target.result;['subjects','courses','qcms','errors','hard','activity'].forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'})})};r.onsuccess=()=>{db=r.result;resolve()};r.onerror=()=>reject(r.error)})}
+
+async function seed(){
+if((await all('subjects')).length)return;
+for(const x of [{id:'cardio',name:'Cardiologie',icon:'❤️'},{id:'pedia',name:'Pédiatrie',icon:'👶'},{id:'neuro',name:'Neurologie',icon:'🧠'},{id:'pneumo',name:'Pneumologie',icon:'🫁'}])await put('subjects',x);
+for(const [name,subject,done] of [
+['Insuffisance cardiaque','cardio',true],['ECG','cardio',true],['HTA','cardio',false],['Valvulopathies','cardio',false],
+['Asthme de l’enfant','pedia',true],['Fièvre chez l’enfant','pedia',false],['Vaccination','pedia',false],['AVC ischémique','neuro',false],['Épilepsie','neuro',true],['BPCO','pneumo',true],['Pneumonie','pneumo',true]
+])await put('courses',{id:uid(),name,subject,done,completedAt:done?today():null});
+await put('qcms',{id:'qcm-cardio-1',name:'Cardiologie — Bases',subject:'cardio',questions:[
+{question:"Quelles propositions concernant l'insuffisance cardiaque sont correctes ?",options:["Elle peut provoquer une dyspnée","Elle peut provoquer des œdèmes","Elle est toujours asymptomatique","Elle peut être associée à une fatigue","Elle exclut toute anomalie cardiaque"],correct:[0,1,3],explanation:"L'insuffisance cardiaque peut notamment entraîner dyspnée, fatigue et œdèmes."},
+{question:"Quels examens peuvent participer à l'évaluation d'un patient cardiaque ?",options:["ECG","Échocardiographie","Dosage de certains biomarqueurs","IRM cardiaque dans certaines situations","Radiographie du pied uniquement"],correct:[0,1,2,3],explanation:"L'évaluation cardiovasculaire peut utiliser l'ECG, l'échocardiographie, certains biomarqueurs et, selon la situation, l'IRM cardiaque."},
+{question:"Quels éléments peuvent être associés à une hypertension artérielle ?",options:["Céphalées chez certains patients","Atteinte rénale possible","Risque cardiovasculaire augmenté","Elle est toujours douloureuse","Elle peut rester longtemps asymptomatique"],correct:[0,1,2,4],explanation:"L'hypertension peut rester longtemps asymptomatique et augmente le risque cardiovasculaire."}
+]});
+await put('qcms',{id:'qcm-pedia-1',name:'Pédiatrie — Bases',subject:'pedia',questions:[
+{question:"Quels éléments peuvent accompagner une fièvre chez l'enfant ?",options:["Frissons","Fatigue","Altération de l'état général","Une température toujours inférieure à 37 °C","Une augmentation de la fréquence cardiaque possible"],correct:[0,1,2,4],explanation:"La fièvre peut s'accompagner de frissons, fatigue, altération de l'état général et parfois d'une augmentation de la fréquence cardiaque."},
+{question:"Quels sont des objectifs de la vaccination ?",options:["Prévenir certaines infections","Réduire le risque de complications de certaines infections","Stimuler une réponse immunitaire","Remplacer systématiquement les antibiotiques","Participer à la protection collective"],correct:[0,1,2,4],explanation:"La vaccination prépare le système immunitaire et contribue à la protection individuelle et collective."}
+]});
+}
+
+async function renderSubjects(){
+let subjects=await all('subjects'),courses=await all('courses');
+if(currentSubject){return renderSubjectCourses(currentSubject,subjects,courses)}
+if(!subjects.length){$('#subjectContent').innerHTML='<div class="card empty">Aucune matière.</div>';return}
+$('#subjectContent').innerHTML='<div class="subject-grid">'+subjects.map(s=>{let list=courses.filter(c=>c.subject===s.id),done=list.filter(c=>c.done).length,p=list.length?Math.round(done/list.length*100):0;return `<div class="subject-card"><div class="row"><div><div class="subject-icon">${s.icon}</div><h2>${esc(s.name)}</h2></div><b>${p}%</b></div><div class="progress"><div class="progress-fill" style="width:${p}%"></div></div><div class="muted">${done}/${list.length} cours étudiés</div><div style="margin-top:15px" class="row"><button class="btn primary small" onclick="openSubject('${s.id}')">Voir les cours</button><button class="btn danger small" onclick="removeSubject('${s.id}')">Supprimer</button></div></div>`}).join('')+'</div>'}
+
+async function openSubject(id){currentSubject=id;await renderSubjects()}
+async function renderSubjectCourses(id,subjects,courses){
+let s=subjects.find(x=>x.id===id);if(!s){currentSubject=null;return}
+let list=courses.filter(c=>c.subject===id),done=list.filter(c=>c.done).length,p=list.length?Math.round(done/list.length*100):0;
+$('#subjectContent').innerHTML=`<div class="top"><div><button class="btn small" onclick="openSubjects()">← Matières</button><h1 style="margin-top:15px">${s.icon} ${esc(s.name)}</h1><div class="muted">${done}/${list.length} cours étudiés</div></div><button class="btn primary" onclick="addCourse('${s.id}')">+ Cours</button></div>
+<div class="card"><div class="row"><b>Progression</b><b>${p}%</b></div><div class="progress"><div class="progress-fill" style="width:${p}%"></div></div></div>
+<div class="course-list">${list.length?list.map(c=>`<div class="course-item ${c.done?'done':''}"><div><b>${c.done?'✓ ':''}${esc(c.name)}</b><div class="muted">${c.done?'Cours étudié':'À étudier'}</div></div><div><button class="btn small" onclick="toggleCourse('${c.id}')">${c.done?'↩ Refaire':'✓ Terminer'}</button> <button class="btn danger small" onclick="removeCourse('${c.id}')">×</button></div></div>`).join(''):'<div class="card empty">Aucun cours dans cette matière.</div>'}</div>`}
+function openSubjects(){currentSubject=null;renderSubjects()}
+async function addSubject(){let name=prompt('Nom de la matière :');if(!name?.trim())return;let icon=prompt('Emoji :','📚');await put('subjects',{id:uid(),name:name.trim(),icon:icon||'📚'});renderSubjects()}
+async function addCourse(subject){let name=prompt('Nom du cours :');if(!name?.trim())return;await put('courses',{id:uid(),name:name.trim(),subject,done:false,completedAt:null});renderSubjects()}
+async function toggleCourse(id){let c=(await all('courses')).find(x=>x.id===id);if(!c)return;c.done=!c.done;c.completedAt=c.done?today():null;await put('courses',c);renderSubjects()}
+async function removeCourse(id){if(confirm('Supprimer ce cours ?')){await del('courses',id);renderSubjects()}}
+async function removeSubject(id){let courses=await all('courses');if(courses.some(c=>c.subject===id)){alert('Cette matière contient des cours. Supprime-les d’abord.');return}if(confirm('Supprimer cette matière ?')){await del('subjects',id);renderSubjects()}}
+
+async function renderQcm(){
+if(currentQcm)return renderQuestion();
+let qcms=await all('qcms'),subjects=await all('subjects'),names=Object.fromEntries(subjects.map(s=>[s.id,s.name]));
+if(!qcms.length){$('#qcmContent').innerHTML='<div class="card empty">Aucun QCM.</div>';return}
+$('#qcmContent').innerHTML='<div class="qcm-list">'+qcms.map(q=>`<div class="qcm-card"><div class="row"><div><h2>${esc(q.name)}</h2><div class="muted">${esc(names[q.subject]||'—')} · ${q.questions?.length||0} questions · réponses multiples</div></div><div><button class="btn primary" onclick="startQcm('${q.id}')">▶ Commencer</button> <button class="btn danger small" onclick="removeQcm('${q.id}')">×</button></div></div></div>`).join('')+'</div>'}
+
+async function startQcm(id){currentQcm=(await all('qcms')).find(q=>q.id===id);currentQuestion=0;selectedAnswers=[];answered=false;renderQuestion()}
+function renderQuestion(){
+let q=currentQcm.questions[currentQuestion],letters=['A','B','C','D','E'];
+$('#qcmContent').innerHTML=`<div class="card" style="max-width:900px;margin:auto"><div class="row"><div class="muted">Question ${currentQuestion+1} / ${currentQcm.questions.length}</div><button class="btn small" onclick="exitQcm()">← Retour</button></div><div class="progress"><div class="progress-fill" style="width:${(currentQuestion+1)/currentQcm.questions.length*100}%"></div></div>
+<div class="qcm-question">${esc(q.question)}</div><div class="muted">☑ Plusieurs réponses peuvent être correctes.</div><div id="options">${q.options.map((o,i)=>`<button class="option ${selectedAnswers.includes(i)?'selected':''}" id="opt${i}" onclick="selectAnswer(${i})"><input type="checkbox" ${selectedAnswers.includes(i)?'checked':''} ${answered?'disabled':''}><span><b>${letters[i]}.</b> ${esc(o)}</span></button>`).join('')}</div>
+<div id="qcmResult"></div>${answered?'':`<button class="btn primary" style="margin-top:12px" onclick="validateAnswer()">Valider la réponse</button>`}</div>`}
+function selectAnswer(i){if(answered)return;if(selectedAnswers.includes(i))selectedAnswers=selectedAnswers.filter(x=>x!==i);else selectedAnswers.push(i);renderQuestion()}
+async function validateAnswer(){
+if(answered)return;if(!selectedAnswers.length){alert('Sélectionne au moins une réponse.');return}
+let q=currentQcm.questions[currentQuestion],correct=[...q.correct].sort((a,b)=>a-b),chosen=[...selectedAnswers].sort((a,b)=>a-b),ok=JSON.stringify(correct)===JSON.stringify(chosen);answered=true;
+for(let i=0;i<q.options.length;i++){let el=$('#opt'+i);if(correct.includes(i))el.classList.add('correct');if(chosen.includes(i)&&!correct.includes(i))el.classList.add('wrong')}
+$('#qcmResult').innerHTML=`<div class="result ${ok?'good':chosen.some(x=>correct.includes(x))?'partial':'bad'}">${ok?'✅ Toutes les bonnes réponses !':chosen.some(x=>correct.includes(x))?'⚠️ Réponse partiellement correcte.':'❌ Réponse incorrecte.'}</div><div class="explanation"><b>Bonnes réponses :</b> ${correct.map(i=>String.fromCharCode(65+i)).join(', ')}<br><br>${esc(q.explanation||'Aucune explication.')}</div><button class="btn primary" style="margin-top:15px" onclick="nextQuestion()">${currentQuestion<currentQcm.questions.length-1?'Question suivante →':'Terminer le QCM ✓'}</button>`;
+if(!ok)await saveError(q,chosen);await renderErrors()}
+async function saveError(q,chosen){let id=currentQcm.id+'-'+currentQuestion,old=(await all('errors')).find(e=>e.id===id);await put('errors',{id,qcmId:currentQcm.id,qcmName:currentQcm.name,questionIndex:currentQuestion,question:q.question,options:q.options,correct:q.correct,userAnswer:chosen,explanation:q.explanation||'',date:today(),count:(old?.count||0)+1})}
+async function nextQuestion(){if(currentQuestion<currentQcm.questions.length-1){currentQuestion++;selectedAnswers=[];answered=false;renderQuestion()}else{await addActivity();currentQcm=null;currentQuestion=0;selectedAnswers=[];answered=false;await render();alert('🎉 QCM terminé !')}}
+function exitQcm(){currentQcm=null;selectedAnswers=[];answered=false;renderQcm()}
+async function removeQcm(id){if(confirm('Supprimer ce QCM ?')){await del('qcms',id);renderQcm()}}
+
+async function addQcm(){
+let subjects=await all('subjects');if(!subjects.length){alert('Crée d’abord une matière.');return}
+let name=prompt('Nom du QCM :');if(!name?.trim())return;
+let opts=subjects.map((s,i)=>`${i+1}. ${s.name}`).join('\n'),n=prompt('Choisis le numéro de la matière :\n'+opts,'1'),s=subjects[Number(n)-1];if(!s)return;
+let q=prompt('Question :');if(!q?.trim())return;
+let options=[];for(let i=0;i<5;i++){let x=prompt(`Proposition ${String.fromCharCode(65+i)} :`);if(!x?.trim())return;options.push(x.trim())}
+let raw=prompt('Numéros des bonnes réponses, séparés par des virgules (ex: 1,2,4) :','1');if(!raw)return;
+let correct=[...new Set(raw.split(',').map(x=>Number(x.trim())-1).filter(x=>x>=0&&x<5))];if(!correct.length){alert('Au moins une bonne réponse.');return}
+let explanation=prompt('Explication :','');await put('qcms',{id:uid(),name:name.trim(),subject:s.id,questions:[{question:q.trim(),options,correct,explanation:explanation||''}]});renderQcm()}
+
+async function renderErrors(){
+let errors=await all('errors');if(!errors.length){$('#errorList').innerHTML='<div class="card empty">🎉 Aucune erreur enregistrée.</div>';return}
+errors.sort((a,b)=>b.date.localeCompare(a.date));$('#errorList').innerHTML=errors.map(e=>`<div class="card error-card"><div class="row"><h3>${esc(e.qcmName)}</h3><button class="btn danger small" onclick="removeError('${e.id}')">Supprimer</button></div><p><b>${esc(e.question)}</b></p><p class="danger">Ta réponse : ${(e.userAnswer||[]).map(i=>String.fromCharCode(65+i)).join(', ')||'—'}</p><p class="ok">Bonnes réponses : ${(e.correct||[]).map(i=>String.fromCharCode(65+i)).join(', ')}</p><div class="explanation">${esc(e.explanation||'Aucune explication.')}</div><div class="muted">Erreur : ${e.date} · ${e.count||1} tentative(s)</div></div>`).join('')}
+async function removeError(id){await del('errors',id);renderErrors();render()}
+async function renderHard(){let h=await all('hard');if(!h.length){$('#hardList').innerHTML='<div class="card empty">🧠 Aucune information enregistrée.</div>';return}$('#hardList').innerHTML=h.map(x=>`<div class="card hard-card"><div class="row"><h3>${esc(x.title)}</h3><button class="btn danger small" onclick="removeHard('${x.id}')">Supprimer</button></div><div>${esc(x.text)}</div></div>`).join('')}
+async function addHard(){let title=prompt('Titre :');if(!title?.trim())return;let text=prompt('Information à retenir :');if(!text?.trim())return;await put('hard',{id:uid(),title:title.trim(),text:text.trim(),date:today()});renderHard()}
+async function removeHard(id){await del('hard',id);renderHard()}
+async function addActivity(){let id=today(),a=(await all('activity')).find(x=>x.id===id)||{id,date:id,courses:0,qcms:0};a.qcms=(a.qcms||0)+1;await put('activity',a)}
+
+async function renderProgress(){
+let c=await all('courses'),s=await all('subjects'),q=await all('qcms'),e=await all('errors'),done=c.filter(x=>x.done).length,p=c.length?Math.round(done/c.length*100):0,questions=q.reduce((n,x)=>n+(x.questions?.length||0),0);
+$('#stats').innerHTML=`<div class="card"><div class="muted">Progression globale</div><div class="value">${p}%</div></div><div class="card"><div class="muted">Cours étudiés</div><div class="value">${done}/${c.length}</div></div><div class="card"><div class="muted">Questions QCM</div><div class="value">${questions}</div></div><div class="card"><div class="muted">Mes erreurs</div><div class="value danger">${e.length}</div></div>`;
+$('#progressSubjects').innerHTML=s.map(x=>{let l=c.filter(z=>z.subject===x.id),d=l.filter(z=>z.done).length,p=l.length?Math.round(d/l.length*100):0;return `<div style="margin:18px 0"><div class="row"><b>${x.icon} ${esc(x.name)}</b><b>${p}%</b></div><div class="progress"><div class="progress-fill" style="width:${p}%"></div></div><div class="muted">${d}/${l.length} cours</div></div>`}).join('')}
+
+async function resetApp(){if(!confirm('Effacer toutes les données de MedProgress et recommencer ?'))return;db.close();indexedDB.deleteDatabase(DB);location.reload()}
+
+async function render(){if(!db)return;let active=$('.view.active')?.id;if(active==='home')return;if(active==='subjects')return renderSubjects();if(active==='qcm')return renderQcm();if(active==='errors')return renderErrors();if(active==='hard')return renderHard();if(active==='progress')return renderProgress()}
+
+$('#addSubject').onclick=addSubject;$('#addQcm').onclick=addQcm;$('#addHard').onclick=addHard;$('#resetBtn').onclick=resetApp;
+
+(async()=>{try{await openDB();await seed();await render()}catch(e){console.error(e);alert('Erreur de base de données : '+e.message)}})();
+</script>
+</body>
+</html>

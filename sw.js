@@ -1,6 +1,6 @@
-const CACHE_NAME = 'medprogress-v4';
+const CACHE_NAME = 'medprogress-v8';
 
-const ASSETS = [
+const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
@@ -10,7 +10,8 @@ const ASSETS = [
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(APP_SHELL))
   );
 
   self.skipWaiting();
@@ -21,32 +22,40 @@ self.addEventListener('activate', event => {
     caches.keys().then(names =>
       Promise.all(
         names
-          .filter(name => name !== CACHE_NAME)
+          .filter(name => name.startsWith('medprogress-') && name !== CACHE_NAME)
           .map(name => caches.delete(name))
       )
-    )
+    ).then(() => self.clients.claim())
   );
-
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
 
-  if (event.request.method !== 'GET') return;
+  // HTML pages: always try the network first
+  // so new versions appear immediately.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
 
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put('./index.html', copy);
+          });
+
+          return response;
+        })
+        .catch(() =>
+          caches.match('./index.html')
+        )
+    );
+
+    return;
+  }
+
+  // Other assets: cache first, then network.
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-
-        const copy = response.clone();
-
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, copy);
-        });
-
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request)
+      .then(cached => cached || fetch(event.request))
   );
-
 });

@@ -1,6 +1,7 @@
-const CACHE_NAME = 'medprogress-v8';
+const CACHE_PREFIX = 'medprogress-';
+const CACHE_NAME = CACHE_PREFIX + 'v8';
 
-const APP_SHELL = [
+const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
@@ -8,124 +9,144 @@ const APP_SHELL = [
   './icons/icon-512.png'
 ];
 
-/* تثبيت النسخة الجديدة */
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+      .then(cache => cache.addAll(CORE_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
-/* تفعيل النسخة الجديدة وحذف الكاش القديم */
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys()
-      .then(names =>
-        Promise.all(
-          names
-            .filter(name =>
-              name.startsWith('medprogress-') &&
-              name !== CACHE_NAME
-            )
-            .map(name => caches.delete(name))
-        )
+    caches.keys().then(names =>
+      Promise.all(
+        names
+          .filter(name =>
+            name.startsWith(CACHE_PREFIX) &&
+            name !== CACHE_NAME
+          )
+          .map(name => caches.delete(name))
       )
-      .then(() => self.clients.claim())
+    ).then(() => self.clients.claim())
   );
 });
 
-/*
-  مهم:
-  index.html و sw.js يتم جلبهما من الشبكة أولاً.
-  لذلك عند رفع نسخة HTML جديدة على GitHub Pages
-  لن يبقى التطبيق عالقاً على HTML القديم.
-*/
-self.addEventListener('fetch', event => {
+self.addEventListener('message', event => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
+self.addEventListener('fetch', event => {
   const request = event.request;
 
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
 
-  /* HTML الرئيسي */
-  if (
+  if (url.origin !== self.location.origin) return;
+
+  const alwaysFresh =
     request.mode === 'navigate' ||
-    url.pathname.endsWith('/index.html')
-  ) {
+    request.destination === 'document' ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/manifest.json') ||
+    url.pathname.endsWith('/sw.js');
 
-    event.respondWith(
-      fetch(request, {
-        cache: 'no-store'
-      })
-      .then(response => {
-
-        if (response && response.ok) {
-
-          const copy = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put('./index.html', copy);
-            });
-
-          return response;
-        }
-
-        return caches.match('./index.html');
-      })
-      .catch(() =>
-        caches.match('./index.html')
-      )
-    );
-
-    return;
+  if (alwaysFresh) {
+    event.respondWith(networkFirst(request));
+  } else {
+    event.respondWith(cacheFirst(request));
   }
-
-  /*
-    sw.js نفسه دائماً من الشبكة.
-    هذا يسمح باكتشاف CACHE_NAME الجديد.
-  */
-  if (url.pathname.endsWith('/sw.js')) {
-
-    event.respondWith(
-      fetch(request, {
-        cache: 'no-store'
-      })
-    );
-
-    return;
-  }
-
-  /*
-    باقي الملفات:
-    الشبكة أولاً، ثم الكاش عند عدم وجود إنترنت.
-  */
-  event.respondWith(
-
-    fetch(request)
-      .then(response => {
-
-        if (response && response.ok) {
-
-          const copy = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(request, copy);
-            });
-
-          return response;
-        }
-
-        return caches.match(request);
-      })
-
-      .catch(() =>
-        caches.match(request)
-      )
-
-  );
-
 });
+
+
+async function networkFirst(request) {
+
+  try {
+
+    const response = await fetch(request, {
+      cache: 'no-store'
+    });
+
+    if (response && response.ok) {
+
+      const cache = await caches.open(CACHE_NAME);
+
+      await cache.put(
+        request,
+        response.clone()
+      );
+
+    }
+
+    return response;
+
+  } catch (error) {
+
+    const cached = await caches.match(request);
+
+    if (cached) {
+      return cached;
+    }
+
+    if (request.mode === 'navigate') {
+
+      const fallback =
+        await caches.match('./index.html');
+
+      if (fallback) {
+        return fallback;
+      }
+
+    }
+
+    throw error;
+  }
+}
+
+
+async function cacheFirst(request) {
+
+  const cached =
+    await caches.match(request);
+
+  const update =
+    fetch(request, {
+      cache: 'no-cache'
+    })
+    .then(response => {
+
+      if (response && response.ok) {
+
+        return caches.open(CACHE_NAME)
+          .then(cache => {
+
+            cache.put(
+              request,
+              response.clone()
+            );
+
+            return response;
+          });
+      }
+
+      return response;
+
+    })
+    .catch(() => null);
+
+
+  if (cached) {
+
+    update.catch(() => {});
+
+    return cached;
+  }
+
+
+  const fresh = await update;
+
+  return fresh || Response.error();
+}

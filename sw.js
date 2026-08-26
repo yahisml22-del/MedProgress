@@ -1,12 +1,12 @@
 const CACHE_PREFIX = 'medprogress-';
-const CACHE_NAME = CACHE_PREFIX + 'v9';
+const CACHE_NAME = CACHE_PREFIX + 'v10';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-192-v2.png',
+  './icons/icon-512-v2.png'
 ];
 
 self.addEventListener('install', event => {
@@ -22,10 +22,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(names =>
       Promise.all(
         names
-          .filter(name =>
-            name.startsWith(CACHE_PREFIX) &&
-            name !== CACHE_NAME
-          )
+          .filter(name => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
           .map(name => caches.delete(name))
       )
     ).then(() => self.clients.claim())
@@ -33,18 +30,13 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('message', event => {
-  if (event.data === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
-
   if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
-
   if (url.origin !== self.location.origin) return;
 
   const alwaysFresh =
@@ -54,99 +46,41 @@ self.addEventListener('fetch', event => {
     url.pathname.endsWith('/manifest.json') ||
     url.pathname.endsWith('/sw.js');
 
-  if (alwaysFresh) {
-    event.respondWith(networkFirst(request));
-  } else {
-    event.respondWith(cacheFirst(request));
-  }
+  if (alwaysFresh) event.respondWith(networkFirst(request));
+  else event.respondWith(cacheFirst(request));
 });
 
-
 async function networkFirst(request) {
-
   try {
-
-    const response = await fetch(request, {
-      cache: 'no-store'
-    });
-
+    const response = await fetch(request,{cache:'no-store'});
     if (response && response.ok) {
-
       const cache = await caches.open(CACHE_NAME);
-
-      await cache.put(
-        request,
-        response.clone()
-      );
-
+      await cache.put(request,response.clone());
     }
-
     return response;
-
   } catch (error) {
-
-    const cached = await caches.match(request);
-
-    if (cached) {
-      return cached;
+    const cached=await caches.match(request);
+    if(cached)return cached;
+    if(request.mode==='navigate'){
+      const fallback=await caches.match('./index.html');
+      if(fallback)return fallback;
     }
-
-    if (request.mode === 'navigate') {
-
-      const fallback =
-        await caches.match('./index.html');
-
-      if (fallback) {
-        return fallback;
-      }
-
-    }
-
     throw error;
   }
 }
 
-
 async function cacheFirst(request) {
-
-  const cached =
-    await caches.match(request);
-
-  const update =
-    fetch(request, {
-      cache: 'no-cache'
-    })
-    .then(response => {
-
-      if (response && response.ok) {
-
-        return caches.open(CACHE_NAME)
-          .then(cache => {
-
-            cache.put(
-              request,
-              response.clone()
-            );
-
-            return response;
-          });
-      }
-
-      return response;
-
-    })
-    .catch(() => null);
-
-
-  if (cached) {
-
-    update.catch(() => {});
-
-    return cached;
-  }
-
-
-  const fresh = await update;
-
-  return fresh || Response.error();
+  const cached=await caches.match(request);
+  const update=fetch(request,{cache:'no-cache'}).then(response=>{
+    if(response&&response.ok){
+      return caches.open(CACHE_NAME).then(cache=>{
+        cache.put(request,response.clone());
+        return response;
+      });
+    }
+    return response;
+  }).catch(()=>null);
+  if(cached){update.catch(()=>{});return cached;}
+  const fresh=await update;
+  return fresh||Response.error();
 }

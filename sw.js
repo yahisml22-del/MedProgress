@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'medprogress-';
-const CACHE_NAME = CACHE_PREFIX + 'v8';
+const CACHE_NAME = CACHE_PREFIX + 'v9';
 
 const CORE_ASSETS = [
   './',

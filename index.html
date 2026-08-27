@@ -219,30 +219,68 @@ async function renderQcm(){if(currentQcm){renderQuestion();return}let qs=await a
   if(!box||!currentQcm)return;
   const q=currentQcm.questions[currentQuestion];
   const correct=ca(q);
-  const selected=[...selectedAnswers].map(Number);
+  const selected=[...selectedAnswers].map(Number).filter(Number.isInteger);
   const btn=document.querySelector('.ai-btn');
   if(btn)btn.disabled=true;
+
   box.innerHTML='<div class="ai-box loading">✨ L’AI prépare une explication...</div>';
+
+  // On envoie les lettres ET le texte afin que les réponses multiples
+  // soient toujours comprises correctement par le Worker.
+  const letters=list=>list.map(i=>String.fromCharCode(65+i));
+  const studentLetters=letters(selected);
+  const correctLetters=letters(correct);
+  const studentTexts=selected.map(i=>q.options?.[i]||'');
+  const correctTexts=correct.map(i=>q.options?.[i]||'');
+
   try{
     const response=await fetch(MEDPROGRESS_AI_WORKER+'/explain',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         question:q.question,
-        studentAnswer:selected.map(i=>q.options?.[i]||'').join(' | '),
-        correctAnswer:correct.map(i=>q.options?.[i]||'').join(' | ')
+        options:q.options||[],
+        studentAnswer:studentTexts.join(' | '),
+        studentAnswerLetters:studentLetters.join(', '),
+        correctAnswer:correctTexts.join(' | '),
+        correctAnswerLetters:correctLetters.join(', '),
+        multipleAnswers:selected.length>1||correct.length>1
       })
     });
-    const data=await response.json();
-    if(!response.ok||!data.ok)throw new Error(data.error||'Erreur de connexion à l’AI.');
-    box.innerHTML='<div class="ai-box"><b>✨ Explication AI</b><br><br>'+esc(data.answer||'Aucune réponse reçue.').replace(/\n/g,'<br>')+'</div>';
+
+    const raw=await response.text();
+    let data=null;
+    try{data=raw?JSON.parse(raw):null}catch(e){
+      throw new Error('Réponse AI invalide reçue du Worker.');
+    }
+
+    if(!response.ok||!data?.ok){
+      throw new Error(data?.error||'Erreur de connexion à l’AI.');
+    }
+
+    // Compatibilité avec plusieurs formats de réponse du Worker.
+    const answer=String(
+      data.answer ??
+      data.response ??
+      data.result?.response ??
+      data.output?.text ??
+      ''
+    ).trim();
+
+    if(!answer){
+      throw new Error('Le Worker AI a répondu sans contenu.');
+    }
+
+    box.innerHTML='<div class="ai-box"><b>✨ Explication AI</b><br><br>'+esc(answer).replace(/\n/g,'<br>')+'</div>';
+
   }catch(error){
-    console.error(error);
+    console.error('MedProgress AI:',error);
     box.innerHTML='<div class="ai-box error">Impossible de contacter l’AI pour le moment.<br><small>'+esc(error.message||error)+'</small></div>';
   }finally{
     if(btn)btn.disabled=false;
   }
 }
+
 async function saveError(qcm,q,u,forcedId=null){let id=forcedId||qcm.id+'-'+currentQuestion,old=(await all('errors')).find(x=>x.id===id),m=old?ensureReviewMeta(old):{interval:1,streak:0,dueAt:today(),lastReviewed:today()};await put('errors',{...m,id,qcmId:qcm.id,qcmName:qcm.name,questionIndex:currentQuestion,question:q.question,options:q.options,correct:ca(q),userAnswer:u,date:today(),lastErrorDate:today(),count:old?(old.count||1)+1:1,explanation:q.explanation||'',interval:1,streak:0,dueAt:today(),lastReviewed:today(),mastered:false,masteredAt:null,priority:100})}async function nextQuestion(){if(currentQuestion<currentQcm.questions.length-1){currentQuestion++;selectedAnswers=[];answered=false;renderQuestion()}else{currentQcm=null;currentQuestion=0;selectedAnswers=[];answered=false;await addActivity('qcms');renderQcm();renderProgress();alert('🎉 QCM terminé !')}}function exitQcm(){currentQcm=null;currentQuestion=0;selectedAnswers=[];answered=false;renderQcm()}
 function dateOnly(v){return typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v:today()}
 function daysBetween(a,b){const aa=new Date(a+'T00:00:00'),bb=new Date(b+'T00:00:00');return Math.round((bb-aa)/86400000)}
